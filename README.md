@@ -1,249 +1,263 @@
 # Dify Custom RBAC Implementation
 
-🔐 **DifyのログアクセスをOwner/Adminのみに制限するワンライナー自動化ツール**
+🔐 **One-liner automation tool to restrict Dify log access to Owner/Admin only**
 
-デフォルトのDifyでは、Editor以上の権限を持つユーザーがワークフローログや会話ログを閲覧できますが、このツールによりOwner/Adminのみがアクセス可能になります。
+> [日本語版はこちら / Japanese Version](README_ja.md)
 
-## ✨ 特徴
+By default, Dify allows Editor+ users to view workflow and conversation logs. This tool restricts log access to Owner/Admin roles only.
 
-- **🚀 ワンライナー実行**: 1つのコマンドで完全自動化
-- **🔍 自動環境検出**: Difyインストールディレクトリ・Dockerコンテナを自動検出
-- **💾 安全機能**: 自動バックアップ・完全ロールバック機能
-- **✅ 動作検証**: RBAC実装の自動検証とレポート生成
-- **🛠️ 柔軟対応**: 複数のパッチパターンで様々な環境に対応
+## ✨ Features
 
-## 📋 変更内容
+- **🚀 One-liner execution**: Complete automation with a single command
+- **🔍 Auto environment detection**: Automatically detects Dify installation & Docker containers
+- **💾 Safety features**: Automatic backup & complete rollback capability
+- **✅ Built-in verification**: Automatic RBAC validation & report generation
+- **🛠️ Flexible compatibility**: Multiple patch patterns for various environments
 
-### バックエンドAPI制限
-- **workflow_app_log.py**: ワークフローログアクセスをOwner/Adminに制限
-- **conversation.py**: 会話ログアクセスをOwner/Adminに制限（4つのAPIエンドポイント対応）
-- **多層防御**: APIレベルでの完全なアクセス制御
+## 📋 Changes Applied
 
-### セキュリティ強化
-- TenantAccountRole.is_privileged_role()を使用した統一ロール判定
-- 403 Forbiddenエラーによる明確なアクセス拒否
-- Editor/Memberユーザーへの適切なエラーメッセージ
+### Backend API Restrictions
+- **workflow_app_log.py**: Restrict workflow log access to Owner/Admin
+- **conversation.py**: Restrict conversation log access to Owner/Admin (4 API endpoints)
+- **Multi-layer defense**: Complete API-level access control
 
-## 📂 ファイル構成
+### Security Enhancements
+- Unified role validation using `TenantAccountRole.is_privileged_role()`
+- Clear access denial with 403 Forbidden responses  
+- Appropriate error messages for Editor/Member users
+
+## 📂 File Structure
 
 ```
 dify-custom-rbac/
-├── README.md                    # このファイル（更新済み）
-├── apply-dify-rbac.sh          # 🎯 メインのワンライナースクリプト
-└── [legacy files...]           # 旧版ファイル（参考用）
+├── README.md                    # English documentation
+├── README_ja.md                 # Japanese documentation
+├── apply-dify-rbac.sh          # 🎯 Main one-liner script
+└── .gitignore                   # Git exclusion settings
 ```
 
-## 🚀 超簡単導入手順
+## 🚀 Super Easy Installation
 
-### 前提条件
-- DifyがDocker Composeで起動済み
-- Docker APIコンテナが稼働中
+### Prerequisites
+- Dify running with Docker Compose
+- Docker API container operational
+- bash environment (Linux/macOS)
 
-### ワンコマンド実行
+### One-Command Execution
 
 ```bash
-# 1. スクリプトをダウンロード＆実行権限付与
-curl -L https://example.com/apply-dify-rbac.sh -o apply-dify-rbac.sh
+# 1. Download script & set execute permissions
+curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/apply-dify-rbac.sh -o apply-dify-rbac.sh
 chmod +x apply-dify-rbac.sh
 
-# 2. 完全自動実行（推奨）
+# 2. Fully automated execution (recommended)
 ./apply-dify-rbac.sh --auto
 ```
 
-**それだけです！** 🎉
+**That's it!** 🎉
 
-### その他の実行オプション
+### Other Execution Options
 
 ```bash
-# 段階的実行（確認しながら）
+# Step-by-step execution (with confirmations)
 ./apply-dify-rbac.sh --interactive
 
-# 現在のRBAC状態確認
+# Check current RBAC status only
 ./apply-dify-rbac.sh --verify-only
 
-# カスタムDifyパス指定
+# Specify custom Dify path
 ./apply-dify-rbac.sh --dify-path /custom/path/dify --auto
 
-# ヘルプ表示
+# Show help
 ./apply-dify-rbac.sh --help
 
-# 変更をロールバック
+# Rollback changes
 ./apply-dify-rbac.sh --rollback
 ```
 
-## 🎯 動作確認
+## 🎯 Verification
 
-### ロール別アクセス制御マトリックス
+### Role-based Access Control Matrix
 
-| ロール | ログAPI アクセス | 動作確認方法 | 期待結果 |
-|--------|----------------|-------------|----------|
-| **Owner** | ✅ **許可** | ログページアクセス | 正常表示 |
-| **Admin** | ✅ **許可** | ログページアクセス | 正常表示 |
-| **Editor** | ❌ **拒否** | ログページアクセス | 403 Forbidden / Internal Server Error |
-| **Member** | ❌ **拒否** | ログページアクセス | 403 Forbidden / Internal Server Error |
+| Role | Log API Access | Verification Method | Expected Result |
+|------|----------------|-------------------|-----------------|
+| **Owner** | ✅ **Allowed** | Access log pages | Normal display |
+| **Admin** | ✅ **Allowed** | Access log pages | Normal display |
+| **Editor** | ❌ **Denied** | Access log pages | 403 Forbidden / Internal Server Error |
+| **Member** | ❌ **Denied** | Access log pages | 403 Forbidden / Internal Server Error |
 
-### 検証手順
+### Verification Steps
 
 ```bash
-# 1. スクリプトでRBAC状態確認
+# 1. Check RBAC status with script
 ./apply-dify-rbac.sh --verify-only
 
-# 2. 手動テスト
-# - Owner/AdminユーザーでログインしてログページにアクセスOK
-# - Editor/Memberユーザーでログインしてログページにアクセス→エラー確認
+# 2. Manual testing
+# - Login as Owner/Admin and access log pages → OK
+# - Login as Editor/Member and access log pages → Error expected
 ```
 
-## 🔄 メンテナンス
+## 🔄 Maintenance
 
-### Difyアップデート時の手順
+### Dify Update Procedure
 
 ```bash
-# 1. 現在の設定をロールバック
+# 1. Rollback current settings
 ./apply-dify-rbac.sh --rollback
 
-# 2. Difyアップデート実行
-cd /root/dify
+# 2. Update Dify
+cd /root/dify  # or your Dify installation directory
 git pull origin main
 docker-compose pull
 docker-compose up -d
 
-# 3. RBACを再適用
-cd /root/dify-custom-rbac
+# 3. Re-apply RBAC
+cd /path/to/dify-custom-rbac
 ./apply-dify-rbac.sh --auto
 
-# 4. 動作確認
+# 4. Verify operation
 ./apply-dify-rbac.sh --verify-only
 ```
 
-### バックアップの管理
+### Backup Management
 
 ```bash
-# バックアップディレクトリ確認
+# Check backup directories
 ls -la /tmp/dify-rbac-backup-*
 
-# 特定のバックアップからロールバック
+# Rollback from specific backup
 BACKUP_DIR=/tmp/dify-rbac-backup-20250730-162641
 ./apply-dify-rbac.sh --rollback
 ```
 
-## 🔧 トラブルシューティング
+## 🔧 Troubleshooting
 
-### よくある問題と解決法
+### Common Issues & Solutions
 
-#### ❌ **問題1**: "API container failed to start properly"
+#### ❌ **Issue 1**: "API container failed to start properly"
 ```bash
-# 解決法
+# Solution
 docker logs docker-api-1 --tail 50
 docker restart docker-api-1
 sleep 30
 ./apply-dify-rbac.sh --verify-only
 ```
 
-#### ❌ **問題2**: Editorでもログアクセスできてしまう
+#### ❌ **Issue 2**: Editor can still access logs
 ```bash
-# 解決法: パッチ状態確認
+# Solution: Check patch status
 ./apply-dify-rbac.sh --verify-only
 
-# 再適用が必要な場合
+# Re-apply if needed
 ./apply-dify-rbac.sh --auto
 ```
 
-#### ❌ **問題3**: Adminでログアクセスできない
+#### ❌ **Issue 3**: Admin cannot access logs
 ```bash
-# 解決法: ロール確認とキャッシュクリア
-# 1. Dify管理画面でユーザーロール確認
-# 2. ブラウザのキャッシュクリア
-# 3. 別ブラウザで確認
+# Solution: Check roles and clear cache
+# 1. Verify user role in Dify admin panel
+# 2. Clear browser cache
+# 3. Try different browser
 ```
 
-### ログ確認コマンド
+### Log Inspection Commands
 
 ```bash
-# RBAC関連ロググ
+# RBAC-related logs
 docker logs docker-api-1 | grep -i "rbac\|forbidden\|privilege"
 
-# エラーログ全般
+# General error logs
 docker logs docker-api-1 --tail 100
 
-# コンテナ状態確認
+# Container status check
 docker ps -f name=docker-api-1
 ```
 
-## 📊 監視とセキュリティ
+## 📊 Monitoring & Security
 
-### 監視推奨事項
+### Monitoring Recommendations
 
-- **403エラー数**: Editor/Memberからの不正アクセス試行
-- **ログAPI呼び出し頻度**: 異常なアクセスパターン検出
-- **ユーザーロール変更**: 権限昇格の監視
+- **403 Error Count**: Unauthorized access attempts from Editor/Member users
+- **Log API Call Frequency**: Detect abnormal access patterns
+- **User Role Changes**: Monitor privilege escalation
 
-### セキュリティベストプラクティス
+### Security Best Practices
 
-1. **定期検証**: 月1回の動作確認
-2. **バックアップ保持**: 直近3回分のバックアップ保持
-3. **ログ監視**: APIアクセスログの定期確認
-4. **権限監査**: ユーザーロールの定期見直し
+1. **Regular Verification**: Monthly operation checks
+2. **Backup Retention**: Keep last 3 backups
+3. **Log Monitoring**: Regular API access log review
+4. **Permission Audits**: Periodic user role review
 
-## ⚡ 高速デプロイガイド
+## ⚡ Quick Deploy Guide
 
-### 新環境での初回セットアップ
+### Initial Setup for New Environments
 
 ```bash
-# ワンライナーセットアップ
-curl -L https://raw.githubusercontent.com/example/dify-custom-rbac/main/apply-dify-rbac.sh | bash -s -- --auto
+# One-liner setup
+curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/apply-dify-rbac.sh | bash -s -- --auto
 ```
 
-### CI/CD統合例
+### CI/CD Integration Example
 
 ```yaml
-# GitHub Actions例
+# GitHub Actions example
 - name: Apply Dify RBAC
   run: |
+    curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/apply-dify-rbac.sh -o apply-dify-rbac.sh
     chmod +x apply-dify-rbac.sh
     ./apply-dify-rbac.sh --auto
     ./apply-dify-rbac.sh --verify-only
 ```
 
-## 📞 サポート
+## 🌐 Languages
 
-- **🐛 バグレポート**: GitHubでIssue作成
-- **💡 機能要望**: GitHubでDiscussion作成  
-- **🔐 セキュリティ問題**: セキュリティチーム直接連絡
-- **📖 詳細ドキュメント**: `/path/to/DEPLOYMENT.md`
+- [English](README.md) - English README (this file)
+- [日本語](README_ja.md) - Japanese README
 
-## 🙏 貢献
+## 📞 Support
 
-プルリクエストとフィードバックを歓迎します！
+- **🐛 Bug Reports**: [Create GitHub Issue](https://github.com/hiroppelx/dify-custom-rbac/issues)
+- **💡 Feature Requests**: [Create GitHub Discussion](https://github.com/hiroppelx/dify-custom-rbac/discussions)
+- **🔐 Security Issues**: Contact security team directly
+- **📖 Japanese Documentation**: [README_ja.md](README_ja.md)
 
-### 貢献者向けクイックスタート
+## 🙏 Contributing
+
+Pull requests and feedback are welcome!
+
+### Contributor Quick Start
 
 ```bash
-# フォーク後
-git clone your-fork-url
+# After forking
+git clone https://github.com/your-username/dify-custom-rbac.git
 cd dify-custom-rbac
 
-# テスト環境で確認
+# Test in environment
 ./apply-dify-rbac.sh --interactive
 
-# プルリクエスト作成
+# Create pull request
 git checkout -b feature/your-improvement
 git commit -m "feat: your improvement"
 git push origin feature/your-improvement
 ```
 
+## ⚖️ License
+
+This project is licensed under Apache License 2.0, same as the Dify project.
+
 ---
 
-## 🎉 まとめ
+## 🎉 Summary
 
-**たった1つのコマンドでDifyのログアクセスを完全に制御！**
+**Complete control over Dify log access with just one command!**
 
 ```bash
 ./apply-dify-rbac.sh --auto
 ```
 
-- ✅ **安全**: 自動バックアップ・ロールバック対応
-- ✅ **簡単**: ワンコマンド実行
-- ✅ **確実**: 動作検証・レポート生成
-- ✅ **柔軟**: 多様な環境に対応
+- ✅ **Safe**: Automatic backup & rollback support
+- ✅ **Simple**: One-command execution
+- ✅ **Reliable**: Built-in verification & reporting
+- ✅ **Flexible**: Support for diverse environments
 
-**🔐 Owner/Adminのみがログアクセス可能になりました！**
+**🔐 Only Owner/Admin can access logs now!**
