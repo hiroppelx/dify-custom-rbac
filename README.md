@@ -39,7 +39,7 @@ dify-custom-rbac/
 ## 🚀 Super Easy Installation
 
 ### Prerequisites
-- Dify running with Docker Compose
+- Dify running with Docker Compose (`docker compose`)
 - Docker API container operational
 - bash environment (Linux/macOS)
 
@@ -108,8 +108,8 @@ chmod +x apply-dify-rbac.sh
 # 2. Update Dify
 cd /root/dify  # or your Dify installation directory
 git pull origin main
-docker-compose pull
-docker-compose up -d
+docker compose pull
+docker compose up -d
 
 # 3. Re-apply RBAC
 cd /path/to/dify-custom-rbac

@@ -37,7 +37,7 @@ dify-custom-rbac/
 ## 🚀 超簡単導入手順
 
 ### 前提条件
-- DifyがDocker Composeで起動済み
+- DifyがDocker Compose（`docker compose`）で起動済み
 - Docker APIコンテナが稼働中
 - bash環境（Linux/macOS）
 
@@ -106,8 +106,8 @@ chmod +x apply-dify-rbac.sh
 # 2. Difyアップデート実行
 cd /root/dify  # または、あなたのDifyインストールディレクトリ
 git pull origin main
-docker-compose pull
-docker-compose up -d
+docker compose pull
+docker compose up -d
 
 # 3. RBACを再適用
 cd /path/to/dify-custom-rbac
