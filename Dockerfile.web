@@ -1,0 +1,24 @@
+# Custom Dify Web Dockerfile with RBAC modifications
+FROM langgenius/dify-web:latest
+
+# Set working directory
+WORKDIR /app/web
+
+# Copy our RBAC-modified files
+COPY --chown=1001:1001 web/context/app-context.tsx /app/web/context/app-context.tsx
+COPY --chown=1001:1001 web/app/\(commonLayout\)/app/\(appDetailLayout\)/\[appId\]/layout-main.tsx /app/web/app/\(commonLayout\)/app/\(appDetailLayout\)/\[appId\]/layout-main.tsx
+
+# Rebuild the application with modifications
+USER root
+RUN cd /app/web && \
+    npm run build && \
+    chown -R 1001:1001 /app/web
+
+# Switch back to non-root user
+USER 1001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+
+EXPOSE 3000

@@ -33,6 +33,7 @@ dify-custom-rbac/
 ├── README.md                    # English documentation
 ├── README_ja.md                 # Japanese documentation
 ├── apply-dify-rbac.sh          # 🎯 Main one-liner script
+├── dify-integrated-upgrade.sh  # 🔄 Integrated upgrade script
 └── .gitignore                   # Git exclusion settings
 ```
 
@@ -99,7 +100,33 @@ chmod +x apply-dify-rbac.sh
 
 ## 🔄 Maintenance
 
-### Dify Update Procedure
+### 🎯 Integrated Upgrade (Recommended)
+
+**One-command Dify upgrade with RBAC preservation:**
+
+```bash
+# Download integrated upgrade script
+curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/dify-integrated-upgrade.sh -o dify-integrated-upgrade.sh
+chmod +x dify-integrated-upgrade.sh
+
+# Automated upgrade (recommended)
+./dify-integrated-upgrade.sh --auto
+
+# Interactive upgrade (step-by-step)
+./dify-integrated-upgrade.sh --interactive
+
+# Preview changes only
+./dify-integrated-upgrade.sh --dry-run
+```
+
+**Features:**
+- 🔄 **Seamless Integration**: Combines Dify upgrade + RBAC preservation
+- 💾 **Auto Backup**: Full backup before any changes
+- 🛡️ **Safe Rollback**: Automatic recovery if upgrade fails
+- ✅ **Verification**: Post-upgrade health checks
+- 📊 **Detailed Report**: Complete upgrade documentation
+
+### Manual Dify Update Procedure
 
 ```bash
 # 1. Rollback current settings

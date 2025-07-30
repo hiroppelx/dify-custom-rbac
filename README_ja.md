@@ -31,6 +31,7 @@ dify-custom-rbac/
 ├── README.md                    # 英語版ドキュメント
 ├── README_ja.md                 # 日本語版ドキュメント（このファイル）
 ├── apply-dify-rbac.sh          # 🎯 メインのワンライナースクリプト
+├── dify-integrated-upgrade.sh  # 🔄 統合アップデートスクリプト
 └── .gitignore                   # Git除外設定
 ```
 
@@ -97,7 +98,33 @@ chmod +x apply-dify-rbac.sh
 
 ## 🔄 メンテナンス
 
-### Difyアップデート時の手順
+### 🎯 統合アップデート（推奨）
+
+**Difyアップデート＋RBAC保護を一括実行:**
+
+```bash
+# 統合アップデートスクリプトをダウンロード
+curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/dify-integrated-upgrade.sh -o dify-integrated-upgrade.sh
+chmod +x dify-integrated-upgrade.sh
+
+# 自動アップデート（推奨）
+./dify-integrated-upgrade.sh --auto
+
+# 対話式アップデート（ステップ確認）
+./dify-integrated-upgrade.sh --interactive
+
+# 変更内容のプレビューのみ
+./dify-integrated-upgrade.sh --dry-run
+```
+
+**特徴:**
+- 🔄 **シームレス統合**: Difyアップデート＋RBAC保護を一括処理
+- 💾 **自動バックアップ**: 変更前の完全バックアップ
+- 🛡️ **安全なロールバック**: アップデート失敗時の自動復旧
+- ✅ **動作検証**: アップデート後のヘルスチェック
+- 📊 **詳細レポート**: 完全なアップデート記録
+
+### 手動Difyアップデート手順
 
 ```bash
 # 1. 現在の設定をロールバック

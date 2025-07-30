@@ -1,0 +1,21 @@
+# Custom Dify API Dockerfile with RBAC modifications
+FROM langgenius/dify-api:latest
+
+# Set working directory
+WORKDIR /app/api
+
+# Copy original files first (baseline)
+# The original image already has the Dify codebase
+
+# Copy our RBAC-modified files
+COPY --chown=1001:1001 api/controllers/console/app/workflow_app_log.py /app/api/controllers/console/app/workflow_app_log.py
+COPY --chown=1001:1001 api/controllers/console/app/conversation.py /app/api/controllers/console/app/conversation.py
+
+# Ensure proper permissions
+USER 1001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:5001/health || exit 1
+
+EXPOSE 5001
