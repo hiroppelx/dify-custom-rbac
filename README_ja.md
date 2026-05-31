@@ -1,330 +1,344 @@
-# Dify カスタムRBAC実装
+# dify-custom-rbac
 
-🔐 **DifyのログアクセスをOwner/Adminのみに制限するワンライナー自動化ツール**
+🔐 **Dify のログアクセスを Owner / Admin ロールのみに制限する — コマンド1つで。**
 
-デフォルトのDifyでは、Editor以上の権限を持つユーザーがワークフローログや会話ログを閲覧できますが、このツールによりOwner/Adminのみがアクセス可能になります。
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![ShellCheck](https://github.com/hiroppelx/dify-custom-rbac/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/hiroppelx/dify-custom-rbac/actions/workflows/shellcheck.yml)
+[![gitleaks](https://github.com/hiroppelx/dify-custom-rbac/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/hiroppelx/dify-custom-rbac/actions/workflows/gitleaks.yml)
+[![For Dify self-hosted](https://img.shields.io/badge/for-Dify%20self--hosted-1C64F2)](https://github.com/langgenius/dify)
 
-## ✨ 特徴
+> [English version / 英語版はこちら](README.md)
 
-- **🚀 ワンライナー実行**: 1つのコマンドで完全自動化
-- **🔍 自動環境検出**: Difyインストールディレクトリ・Dockerコンテナを自動検出
-- **💾 安全機能**: 自動バックアップ・完全ロールバック機能
-- **✅ 動作検証**: RBAC実装の自動検証とレポート生成
-- **🛠️ 柔軟対応**: 複数のパッチパターンで様々な環境に対応
+デフォルトのセルフホスト版 Dify では、**Editor 以上**の権限を持つユーザーがワークフローログ・会話ログを閲覧できます。**dify-custom-rbac** は認可チェックを追加し、**Owner** と **Admin** ロールのみがそれらのログにアクセスできるようにします。
 
-## 📋 変更内容
+> **免責:** これは独立したコミュニティ製ツールです。LangGenius / Dify プロジェクトとは **提携・承認・スポンサー関係にありません**。Dify のソースコードは再配布しておらず、スクリプトは **あなた自身の** Dify インストールにパッチを当てます。
 
-### バックエンドAPI制限
-- **workflow_app_log.py**: ワークフローログアクセスをOwner/Adminに制限
-- **conversation.py**: 会話ログアクセスをOwner/Adminに制限（4つのAPIエンドポイント対応）
-- **多層防御**: APIレベルでの完全なアクセス制御
+---
 
-### セキュリティ強化
-- `TenantAccountRole.is_privileged_role()`を使用した統一ロール判定
-- 403 Forbiddenエラーによる明確なアクセス拒否
-- Editor/Memberユーザーへの適切なエラーメッセージ
+## 目次
 
-## 📂 ファイル構成
+- [仕組み](#仕組み)
+- [互換性](#互換性)
+- [要件](#要件)
+- [インストール](#インストール)
+- [使い方](#使い方)
+- [ロールバック](#ロールバック)
+- [検証](#検証)
+- [Dify のアップグレード](#dify-のアップグレード)
+- [カスタム Docker イメージ](#カスタム-docker-イメージ)
+- [制限事項と注意点](#制限事項と注意点)
+- [セキュリティ](#セキュリティ)
+- [トラブルシューティング](#トラブルシューティング)
+- [コントリビュート](#コントリビュート)
+- [ライセンス](#ライセンス)
 
-```
-dify-custom-rbac/
-├── README.md                    # 英語版ドキュメント
-├── README_ja.md                 # 日本語版ドキュメント（このファイル）
-├── apply-dify-rbac.sh          # 🎯 メインのワンライナースクリプト
-├── dify-integrated-upgrade.sh  # 🔄 統合アップデートスクリプト
-└── .gitignore                   # Git除外設定
-```
+---
 
-## 🚀 超簡単導入手順
+## 仕組み
 
-### 前提条件
-- DifyがDocker Compose（`docker compose`）で起動済み
-- Docker APIコンテナが稼働中
-- bash環境（Linux/macOS）
+本ツールは Dify のログ系エンドポイントと UI に、小さく明確な認可チェックを追加します。
 
-### ワンコマンド実行
+### バックエンド (API)
 
-```bash
-# 1. スクリプトをダウンロード＆実行権限付与
-curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/apply-dify-rbac.sh -o apply-dify-rbac.sh
-chmod +x apply-dify-rbac.sh
+- **`api/controllers/console/app/workflow_app_log.py`** — ワークフローログへのアクセスを Owner/Admin に制限。
+- **`api/controllers/console/app/conversation.py`** — 会話ログへのアクセスを Owner/Admin に制限（completion/chat の会話一覧・詳細の計4エンドポイント）。
 
-# 2. 完全自動実行（推奨）
-./apply-dify-rbac.sh --auto
-```
-
-**それだけです！** 🎉
-
-### その他の実行オプション
-
-```bash
-# 段階的実行（確認しながら）
-./apply-dify-rbac.sh --interactive
-
-# 現在のRBAC状態確認
-./apply-dify-rbac.sh --verify-only
-
-# カスタムDifyパス指定
-./apply-dify-rbac.sh --dify-path /custom/path/dify --auto
-
-# ヘルプ表示
-./apply-dify-rbac.sh --help
-
-# 変更をロールバック
-./apply-dify-rbac.sh --rollback
-```
-
-## 🎯 動作確認
-
-### ロール別アクセス制御マトリックス
-
-| ロール | ログAPI アクセス | 動作確認方法 | 期待結果 |
-|--------|----------------|-------------|----------|
-| **Owner** | ✅ **許可** | ログページアクセス | 正常表示 |
-| **Admin** | ✅ **許可** | ログページアクセス | 正常表示 |
-| **Editor** | ❌ **拒否** | ログページアクセス | 403 Forbidden / Internal Server Error |
-| **Member** | ❌ **拒否** | ログページアクセス | 403 Forbidden / Internal Server Error |
-
-### 検証手順
-
-```bash
-# 1. スクリプトでRBAC状態確認
-./apply-dify-rbac.sh --verify-only
-
-# 2. 手動テスト
-# - Owner/AdminユーザーでログインしてログページにアクセスOK
-# - Editor/Memberユーザーでログインしてログページにアクセス→エラー確認
-```
-
-## 🔄 メンテナンス
-
-### 🎯 統合アップデート（推奨）
-
-**Difyアップデート＋RBAC保護を一括実行:**
-
-```bash
-# 統合アップデートスクリプトをダウンロード
-curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/dify-integrated-upgrade.sh -o dify-integrated-upgrade.sh
-chmod +x dify-integrated-upgrade.sh
-
-# 自動アップデート（推奨）
-./dify-integrated-upgrade.sh --auto
-
-# 対話式アップデート（ステップ確認）
-./dify-integrated-upgrade.sh --interactive
-
-# 変更内容のプレビューのみ
-./dify-integrated-upgrade.sh --dry-run
-```
-
-**特徴:**
-- 🔄 **シームレス統合**: Difyアップデート＋RBAC保護を一括処理
-- 💾 **自動バックアップ**: 変更前の完全バックアップ
-- 🛡️ **安全なロールバック**: アップデート失敗時の自動復旧
-- ✅ **動作検証**: アップデート後のヘルスチェック
-- 📊 **詳細レポート**: 完全なアップデート記録
-
-### 手動Difyアップデート手順
-
-```bash
-# 1. 現在の設定をロールバック
-./apply-dify-rbac.sh --rollback
-
-# 2. Difyアップデート実行
-cd /root/dify  # または、あなたのDifyインストールディレクトリ
-git pull origin main
-docker compose pull
-docker compose up -d
-
-# 3. RBACを再適用
-cd /path/to/dify-custom-rbac
-./apply-dify-rbac.sh --auto
-
-# 4. 動作確認
-./apply-dify-rbac.sh --verify-only
-```
-
-### バックアップの管理
-
-```bash
-# バックアップディレクトリ確認
-ls -la /tmp/dify-rbac-backup-*
-
-# 特定のバックアップからロールバック
-BACKUP_DIR=/tmp/dify-rbac-backup-20250730-162641
-./apply-dify-rbac.sh --rollback
-```
-
-## 🔧 トラブルシューティング
-
-### よくある問題と解決法
-
-#### ❌ **問題1**: "API container failed to start properly"
-```bash
-# 解決法
-docker logs docker-api-1 --tail 50
-docker restart docker-api-1
-sleep 30
-./apply-dify-rbac.sh --verify-only
-```
-
-#### ❌ **問題2**: Editorでもログアクセスできてしまう
-```bash
-# 解決法: パッチ状態確認
-./apply-dify-rbac.sh --verify-only
-
-# 再適用が必要な場合
-./apply-dify-rbac.sh --auto
-```
-
-#### ❌ **問題3**: Adminでログアクセスできない
-```bash
-# 解決法: ロール確認とキャッシュクリア
-# 1. Dify管理画面でユーザーロール確認
-# 2. ブラウザのキャッシュクリア
-# 3. 別ブラウザで確認
-```
-
-### ログ確認コマンド
-
-```bash
-# RBAC関連ロググ
-docker logs docker-api-1 | grep -i "rbac\|forbidden\|privilege"
-
-# エラーログ全般
-docker logs docker-api-1 --tail 100
-
-# コンテナ状態確認
-docker ps -f name=docker-api-1
-```
-
-## 📊 監視とセキュリティ
-
-### 監視推奨事項
-
-- **403エラー数**: Editor/Memberからの不正アクセス試行
-- **ログAPI呼び出し頻度**: 異常なアクセスパターン検出
-- **ユーザーロール変更**: 権限昇格の監視
-
-### セキュリティベストプラクティス
-
-1. **定期検証**: 月1回の動作確認
-2. **バックアップ保持**: 直近3回分のバックアップ保持
-3. **ログ監視**: APIアクセスログの定期確認
-4. **権限監査**: ユーザーロールの定期見直し
-
-## ⚡ 高速デプロイガイド
-
-### 新環境での初回セットアップ
-
-```bash
-# ワンライナーセットアップ
-curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/apply-dify-rbac.sh | bash -s -- --auto
-```
-
-### CI/CD統合例
-
-```yaml
-# GitHub Actions例
-- name: Apply Dify RBAC
-  run: |
-    curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/apply-dify-rbac.sh -o apply-dify-rbac.sh
-    chmod +x apply-dify-rbac.sh
-    ./apply-dify-rbac.sh --auto
-    ./apply-dify-rbac.sh --verify-only
-```
-
-## 💡 実装技術詳細
-
-### パッチ対象ファイル
-
-1. **`api/controllers/console/app/workflow_app_log.py`**
-   - ワークフローログAPI
-   - `TenantAccountRole.is_privileged_role()`チェック追加
-
-2. **`api/controllers/console/app/conversation.py`**
-   - 会話ログAPI（4つのエンドポイント）
-   - CompletionConversationApi
-   - CompletionConversationDetailApi
-   - ChatConversationApi
-   - ChatConversationDetailApi
-
-### セキュリティ実装
+チェックは統一されています:
 
 ```python
-# 追加されるRBACチェック
 from models.account import TenantAccountRole
 if not TenantAccountRole.is_privileged_role(current_user.current_tenant_account.role):
     raise Forbidden("Only owner or admin can view logs")
 ```
 
-## 🌐 多言語対応
+Editor/Member ユーザーには **`403 Forbidden`** が返ります。
 
-- [English](README.md) - 英語版README
-- [日本語](README_ja.md) - 日本語版README（このファイル）
+### フロントエンド (Web・任意)
 
-## 📞 サポート
+- 非特権ロールに対して **Logs** ナビゲーション項目を非表示にし、ログ用ルートからリダイレクトします（`web/context/app-context.tsx`、`web/app/(commonLayout)/app/(appDetailLayout)/[appId]/layout-main.tsx`）。
 
-- **🐛 バグレポート**: [GitHubでIssue作成](https://github.com/hiroppelx/dify-custom-rbac/issues)
-- **💡 機能要望**: [GitHubでDiscussion作成](https://github.com/hiroppelx/dify-custom-rbac/discussions)
-- **🔐 セキュリティ問題**: セキュリティチーム直接連絡
-- **📖 英語版ドキュメント**: [README.md](README.md)
+フロントエンドの変更は多層防御 / UX 目的であり、実際の強制はバックエンドのチェックが担います。
 
-## 🙏 貢献
+### 適用方法は2通り
 
-プルリクエストとフィードバックを歓迎します！
+| 方法 | スクリプト | 内容 |
+| --- | --- | --- |
+| **ランタイムパッチ**（最速） | `apply-dify-rbac.sh` | 稼働中の API コンテナ内のファイルにパッチを当てて再起動。自動バックアップを作成。 |
+| **カスタムイメージ**（再現性重視） | `build-custom-images.sh` + `docker-compose.override.yml` | **事前にパッチを当てた** Dify ソースツリーから `dify-*-custom-rbac` イメージをビルド（[カスタム Docker イメージ](#カスタム-docker-イメージ)参照）。稼働中コンテナへの直接パッチは行いません。 |
 
-### 貢献者向けクイックスタート
+---
+
+## 互換性
+
+`dify-custom-rbac` は **Docker Compose でデプロイされたセルフホスト版 Dify** を対象とします。
+
+特定の Dify ソースファイル・コードパターンにパッチを当てて動作を変えるため、**互換性はあなたの Dify バージョンに依存します**。以下のコードが存在し、一致していることが前提です:
+
+| レイヤ | ファイル | 依存するパターン |
+| --- | --- | --- |
+| Backend | `api/controllers/console/app/workflow_app_log.py` | `def get(self, app_model: App)` |
+| Backend | `api/controllers/console/app/conversation.py` | `if not current_user.is_editor:` |
+| Backend | `models/account.py` | `TenantAccountRole.is_privileged_role()` |
+| Frontend | `web/context/app-context.tsx` | `isCurrentWorkspaceEditor` / `isCurrentWorkspaceOwner` |
+| Frontend | `web/app/(commonLayout)/app/(appDetailLayout)/[appId]/layout-main.tsx` | ログナビ項目 + ルートガード |
+
+**特定の「対応バージョン」は意図的に固定していません。** 新しい / 古い Dify リリースではこのコードが移動・改名される可能性があります。本番適用の前に:
+
+1. まず非破壊チェックを実行:
+   ```bash
+   ./apply-dify-rbac.sh --verify-only      # 現在の状態を確認
+   ./dify-integrated-upgrade.sh --dry-run  # アップグレード内容をプレビュー
+   ```
+2. 対象パターンが変わっていると、パッチャは **`WARNING: Search pattern not found`** を表示します。これは *「パターンを更新するまで非互換」* の合図として扱ってください。
+3. **Dify のイメージタグを固定**（`latest` を避ける）して動作を再現可能にしてください。
+
+特定の Dify バージョンで検証できたら、issue や PR で共有いただけると、既知の動作バージョンとして記載できます。
+
+---
+
+## 要件
+
+- **Docker Compose**（`docker compose`）で稼働中のセルフホスト版 **Dify**。
+- 稼働中の Dify **API コンテナ**。
+- **Bash**（Linux/macOS）。ランタイムパッチ方式では `docker` 経由のコンテナアクセス。
+- カスタムイメージ方式では、イメージをビルドできる環境（`Dockerfile.web` 内で `npm run build` に Node ツールチェインを使用）。
+
+---
+
+## インストール
 
 ```bash
-# フォーク後
-git clone https://github.com/your-username/dify-custom-rbac.git
-cd dify-custom-rbac
+# メインスクリプトをダウンロードして実行権限を付与
+curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/apply-dify-rbac.sh -o apply-dify-rbac.sh
+chmod +x apply-dify-rbac.sh
+```
 
-# テスト環境で確認
+> **セキュリティ上の注意:** これはセキュリティツールです。`curl` をシェルに直接パイプするのではなく、**実行前にスクリプトの内容を確認してください**（`less apply-dify-rbac.sh`）。[SECURITY.md](SECURITY.md) を参照。
+
+---
+
+## 使い方
+
+```bash
+# 全自動（環境を信頼できる場合に推奨）
+./apply-dify-rbac.sh --auto
+
+# 段階実行（確認しながら）
 ./apply-dify-rbac.sh --interactive
 
-# プルリクエスト作成
-git checkout -b feature/your-improvement
-git commit -m "feat: your improvement"
-git push origin feature/your-improvement
+# 現在の RBAC 状態のみ確認（非破壊）
+./apply-dify-rbac.sh --verify-only
+
+# 既定以外の Dify インストールを指定
+./apply-dify-rbac.sh --dify-path /custom/path/dify --auto
+
+# 変更を取り消す（直近の自動バックアップから復元）
+./apply-dify-rbac.sh --rollback
+
+# ヘルプ
+./apply-dify-rbac.sh --help
 ```
 
-### 開発ガイドライン
-
-1. **コード品質**: シェルスクリプトのベストプラクティスに従う
-2. **テスト**: 複数環境での動作確認
-3. **ドキュメント**: 変更内容の明確な説明
-4. **互換性**: 既存インストールへの影響を最小化
-
-## ⚖️ ライセンス
-
-このプロジェクトはApache License 2.0の下で公開されています。Difyプロジェクトと同じライセンスを使用しています。
-
-## 📚 関連リンク
-
-- **Dify公式**: https://github.com/langgenius/dify
-- **Difyドキュメント**: https://docs.dify.ai/
-- **Docker**: https://www.docker.com/
-- **Docker Compose**: https://docs.docker.com/compose/
+スクリプトは Dify ディレクトリと Docker コンテナを自動検出し、タイムスタンプ付きバックアップを作成し、パッチを適用し、API コンテナを再起動し、結果を検証してレポートを表示します。
 
 ---
 
-## 🎉 まとめ
+## ロールバック
 
-**たった1つのコマンドでDifyのログアクセスを完全に制御！**
+適用のたびに `/tmp/dify-rbac-backup-*` 以下にタイムスタンプ付きバックアップが作成されるため、いつでも元に戻せます。
 
 ```bash
-./apply-dify-rbac.sh --auto
+# 直近の適用をロールバック
+./apply-dify-rbac.sh --rollback
+
+# 利用可能なバックアップ一覧
+ls -la /tmp/dify-rbac-backup-*
 ```
 
-- ✅ **安全**: 自動バックアップ・ロールバック対応
-- ✅ **簡単**: ワンコマンド実行
-- ✅ **確実**: 動作検証・レポート生成
-- ✅ **柔軟**: 多様な環境に対応
+スタンドアロンのソースパッチャは `revert` サブコマンドを使います:
 
-**🔐 Owner/Adminのみがログアクセス可能になりました！**
+```bash
+python3 backend-rbac-patch.py revert
+node frontend-rbac-patch.js revert
+```
 
 ---
 
-*このツールは、企業環境でのDify運用時のセキュリティ要件を満たすために開発されました。安全で効率的なDify管理をサポートします。*
+## 検証
+
+### ロール別アクセスマトリクス
+
+| ロール | ログ API アクセス | 確認方法 | 期待結果 |
+| --- | --- | --- | --- |
+| **Owner** | ✅ 許可 | ログページを開く | 正常表示 |
+| **Admin** | ✅ 許可 | ログページを開く | 正常表示 |
+| **Editor** | ❌ 拒否 | ログページを開く | `403 Forbidden` |
+| **Member** | ❌ 拒否 | ログページを開く | `403 Forbidden` |
+
+### 手順
+
+```bash
+# 1. 自動チェック
+./apply-dify-rbac.sh --verify-only
+
+# 2. 手動チェック
+#  - Owner/Admin でログイン → ログが見える
+#  - Editor/Member でログイン → アクセス拒否（403）
+```
+
+---
+
+## Dify のアップグレード
+
+Dify のアップグレードはパッチ済みファイルを上書きし得るため、アップグレード後は RBAC を再適用してください。統合アップグレードスクリプトがこれを代行し、バックアップも保持します:
+
+```bash
+curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/dify-integrated-upgrade.sh -o dify-integrated-upgrade.sh
+chmod +x dify-integrated-upgrade.sh
+
+./dify-integrated-upgrade.sh --dry-run      # プレビューのみ（変更なし）
+./dify-integrated-upgrade.sh --interactive  # 段階実行
+./dify-integrated-upgrade.sh --auto         # 自動
+./dify-integrated-upgrade.sh --skip-rbac --auto  # Dify のみアップグレード
+```
+
+設定とボリュームをバックアップし、RBAC を一時的にロールバックし、Dify をアップグレードし、RBAC を再適用して結果を検証します。
+
+<details>
+<summary>手動アップグレード手順</summary>
+
+```bash
+# 1. 現在の RBAC 変更をロールバック
+./apply-dify-rbac.sh --rollback
+
+# 2. Dify をアップグレード
+cd /path/to/dify
+git pull origin main
+docker compose pull
+docker compose up -d
+
+# 3. RBAC を再適用
+cd /path/to/dify-custom-rbac
+./apply-dify-rbac.sh --auto
+
+# 4. 検証
+./apply-dify-rbac.sh --verify-only
+```
+</details>
+
+---
+
+## カスタム Docker イメージ
+
+再現性のあるデプロイのために、ランタイムでパッチを当てる代わりに、事前にパッチを当てたイメージをビルドできます。**`build-custom-images.sh` 自体はパッチを当てません** — 隣接する `../dify` ソースツリーからイメージをビルドするため、そのツリーが **あらかじめ RBAC 変更を含んでいる** 必要があります。
+
+> **注意 — ビルド元のツリーにパッチを当ててください。** スタンドアロンのソースパッチャ（`backend-rbac-patch.py` / `frontend-rbac-patch.js`）は現状 `/root/dify` を既定の対象とし、パス引数を取りません。一方 `build-custom-images.sh` は `../dify` からビルドします。ビルド元のツリーが確実にパッチ済みになるようにしてください（例: Dify チェックアウトを `/root/dify` に置く、または `../dify` ツリーに同等の編集を手動で適用する）。その **後で** ビルドします。
+
+```bash
+# パッチ済みの Dify ソースツリー（隣接する ../dify）からイメージをビルド
+./build-custom-images.sh
+# 生成物: dify-api-custom-rbac:latest, dify-web-custom-rbac:latest
+
+# Dify ディレクトリに override ファイルを置いてデプロイ
+cp docker-compose.override.yml /path/to/dify/
+docker compose up -d
+```
+
+> **デプロイ前に、ビルドしたイメージが実際に RBAC を強制するか必ず検証してください** — 未パッチのソースツリーからは、名前は `dify-*-custom-rbac` でも RBAC を強制しないイメージが生成されます:
+>
+> ```bash
+> docker run --rm dify-api-custom-rbac:latest \
+>   grep -q "is_privileged_role" \
+>   /app/api/controllers/console/app/workflow_app_log.py \
+>   && echo "RBAC あり" || echo "未パッチ — デプロイしないでください"
+> ```
+>
+> 多くの場合、ランタイムパッチ方式（`apply-dify-rbac.sh --auto`。Dify を自動検出し `--dify-path` も使用可）の方が簡単で、この問題を回避できます。
+
+詳細な手順（前提条件・環境設定・nginx ハードニング・監視・完了チェックリスト）は [DEPLOYMENT.md](DEPLOYMENT.md) を参照してください。
+
+---
+
+## 制限事項と注意点
+
+- **バージョン結合。** Dify 内部のソース / UI パターンにパッチを当てるため、Dify のアップグレードで壊れることがあります。アップグレード後は必ず再検証してください。
+- **Dify とは非提携。** 独立したコミュニティ製ツールであり、LangGenius / Dify プロジェクトによる製造・承認はありません。
+- **`latest` ベースイメージ。** `Dockerfile.api` / `Dockerfile.web` は `FROM langgenius/dify-*:latest` でビルドします。再現性のためバージョンを固定してください。
+- **ランタイムパッチは API コンテナを再起動**するため、短時間の中断が生じます。カスタムイメージ方式は稼働中コンテナへの直接パッチを避けられます。
+- **フロントエンド変更には Web の再ビルドが必要**（`Dockerfile.web` が `npm run build` を実行）で、時間とリソースを要します。
+- **対象はログ系エンドポイントのみ。** ワークフローログと会話ログを Owner/Admin に制限します。Dify の他機能に対する汎用 RBAC システムではありません。
+- **セルフホスト専用。** ファイル / コンテナアクセスが必要で、Dify Cloud には適用できません。
+- **テストスイート** はパッチ後の Dify コードを対象とし、実行には Dify 環境 / 依存関係が必要です。本リポジトリ単体の CI ゲートではなく、参照用です。
+
+---
+
+## セキュリティ
+
+- 脆弱性報告の手順と脅威モデルは [SECURITY.md](SECURITY.md) を参照してください。
+- 本リポジトリのスクリプトは `curl | bash` ではなく、**ダウンロードして内容を確認してから実行**することを推奨します。
+- CI は push と pull request のたびに **ShellCheck** と **gitleaks**（シークレットスキャン・全履歴）を実行します。
+
+---
+
+## トラブルシューティング
+
+<details>
+<summary>適用後に API コンテナが起動しない</summary>
+
+```bash
+docker logs <api-container> --tail 50
+docker restart <api-container>
+sleep 30
+./apply-dify-rbac.sh --verify-only
+```
+</details>
+
+<details>
+<summary>Editor がまだログにアクセスできる</summary>
+
+```bash
+# パッチの有無を確認し、必要なら再適用
+./apply-dify-rbac.sh --verify-only
+./apply-dify-rbac.sh --auto
+```
+</details>
+
+<details>
+<summary>Admin がログにアクセスできない</summary>
+
+Dify 管理画面でユーザーのロールを確認し、ブラウザのキャッシュをクリアして、別のブラウザで試してください。
+</details>
+
+<details>
+<summary><code>WARNING: Search pattern not found</code></summary>
+
+お使いの Dify バージョンが対象コードを変更している可能性があります。[互換性](#互換性) を参照してください。部分的な変更を元に戻してパターンを更新するか、Dify バージョンを添えて issue を作成してください。
+</details>
+
+---
+
+## コントリビュート
+
+コントリビュート歓迎です！ [CONTRIBUTING.md](CONTRIBUTING.md) をお読みください。
+
+これはコミュニティ運営のプロジェクトです: 変更が取り込まれる前に、**メンテナがすべての pull request をレビューし、すべての issue をトリアージ**します。マージとリリースはメンテナのみが行います。
+
+提出前に:
+
+```bash
+shellcheck ./*.sh                       # lint（CI で強制）
+gitleaks detect --source . --redact     # シークレットスキャン
+```
+
+---
+
+## ライセンス
+
+本プロジェクトのツールは [Apache License 2.0](LICENSE) の下で公開されています。帰属表示は [`NOTICE`](NOTICE) を参照してください。（Dify 自体は、追加条件付きの *改変版* Apache License 2.0 で配布されています。あなたのデプロイに適用される条件は、Dify 自身の [LICENSE](https://github.com/langgenius/dify/blob/main/LICENSE) を確認してください。）
+
+---
+
+## 言語
+
+- [English](README.md)
+- [日本語 / Japanese](README_ja.md)（このファイル）

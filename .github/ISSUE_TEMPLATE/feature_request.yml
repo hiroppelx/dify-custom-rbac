@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest an idea or improvement for dify-custom-rbac
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem are you trying to solve? Why is it important?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions or workarounds you've thought about.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Anything else that helps — Dify version, environment, links, etc.

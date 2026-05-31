@@ -263,7 +263,8 @@ pre_upgrade_validation() {
     # Gitの状態をチェック
     cd "$DIFY_ROOT"
     if [[ -d ".git" ]]; then
-        local git_status=$(git status --porcelain 2>/dev/null || echo "error")
+        local git_status
+        git_status=$(git status --porcelain 2>/dev/null || echo "error")
         if [[ "$git_status" != "" && "$git_status" != "error" ]]; then
             log_warning "作業ディレクトリに未コミットの変更があります:"
             git status --short
@@ -430,7 +431,8 @@ post_upgrade_verification() {
     log_step "アップグレード後の検証を実行しています..."
     
     # Dockerコンテナのチェック
-    local containers=$(docker ps --filter "name=dify" --format "{{.Names}}" | wc -l)
+    local containers
+    containers=$(docker ps --filter "name=dify" --format "{{.Names}}" | wc -l)
     if [[ $containers -gt 0 ]]; then
         log_success "✓ Difyコンテナが実行中です ($containersコンテナ)"
     else
