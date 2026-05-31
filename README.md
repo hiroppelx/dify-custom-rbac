@@ -258,27 +258,39 @@ cd /path/to/dify-custom-rbac
 
 For reproducible deployments you can build pre-patched images instead of patching
 at runtime. **`build-custom-images.sh` does not patch anything by itself** — it
-builds images from your Dify **source tree**, so you must apply the RBAC source
-patchers to that tree *first*:
+builds images from a Dify **source tree** (the sibling `../dify` directory), which
+must already contain the RBAC changes.
+
+> **Heads-up — patch the tree you build from.** The standalone source patchers
+> (`backend-rbac-patch.py` / `frontend-rbac-patch.js`) currently default to
+> patching `/root/dify` and take no path argument, while `build-custom-images.sh`
+> builds from `../dify`. Make sure the tree you build from is actually patched
+> (e.g. place your Dify checkout at `/root/dify`, or apply the equivalent edits to
+> your `../dify` tree), **then** build.
 
 ```bash
-# 1. Patch your Dify source tree (creates .backup files next to each target)
-python3 backend-rbac-patch.py
-node frontend-rbac-patch.js
-
-# 2. Build images from the now-patched source
+# Build images from an already-patched Dify source tree (the sibling ../dify)
 ./build-custom-images.sh
 # Produces: dify-api-custom-rbac:latest, dify-web-custom-rbac:latest
 
-# 3. Deploy using the override file in your Dify directory
+# Deploy using the override file in your Dify directory
 cp docker-compose.override.yml /path/to/dify/
 docker compose up -d
 ```
 
-> **Important:** Building against an **unpatched** Dify source tree produces
-> `dify-*-custom-rbac` images that do **not** enforce RBAC despite their name.
-> Always run the source patchers (step 1) before building, and confirm access
-> control afterwards with the [verification steps](#verification).
+> **Always verify the built image enforces RBAC before deploying** — an unpatched
+> source tree produces `dify-*-custom-rbac` images that do **not** enforce RBAC
+> despite their name:
+>
+> ```bash
+> docker run --rm dify-api-custom-rbac:latest \
+>   grep -q "is_privileged_role" \
+>   /app/api/controllers/console/app/workflow_app_log.py \
+>   && echo "RBAC present" || echo "NOT patched — do not deploy"
+> ```
+>
+> For most users the runtime-patch route (`apply-dify-rbac.sh --auto`, which
+> auto-detects your Dify and supports `--dify-path`) is simpler and avoids this.
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for a full, step-by-step deployment guide
 (prerequisites, environment configuration, nginx hardening, monitoring, and a
