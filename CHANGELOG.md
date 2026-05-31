@@ -34,8 +34,8 @@ self-hosted (Docker Compose) deployments.
 - **`frontend-rbac-patch.js`** — frontend patcher that hides the log menu and
   guards the log route for non-privileged roles, with a `revert` subcommand.
 - **Custom image build path** — `build-custom-images.sh`, `Dockerfile.api`,
-  `Dockerfile.web`, and `docker-compose.override.yml` to build and run
-  pre-patched images instead of patching at runtime.
+  `Dockerfile.web`, and `docker-compose.override.yml` to build and run images
+  from a pre-patched Dify source tree instead of patching at runtime.
 - **`nginx.custom.conf`** — optional rate limiting and security headers for log
   endpoints.
 - **Tests** — `test_rbac_backend.py` and `test_rbac_frontend.test.tsx` as

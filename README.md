@@ -75,7 +75,7 @@ enforcement.
 | Approach | Script | What it does |
 | --- | --- | --- |
 | **Runtime patch** (quickest) | `apply-dify-rbac.sh` | Patches files in the running API container and restarts it. Creates automatic backups. |
-| **Custom images** (reproducible) | `build-custom-images.sh` + `docker-compose.override.yml` | Builds pre-patched `dify-api` / `dify-web` images. No in-place patching. |
+| **Custom images** (reproducible) | `build-custom-images.sh` + `docker-compose.override.yml` | Build `dify-*-custom-rbac` images from a Dify source tree **you patch first** (see [Custom Docker images](#custom-docker-images)). No in-place patching of a running container. |
 
 ---
 
@@ -256,17 +256,29 @@ cd /path/to/dify-custom-rbac
 
 ## Custom Docker images
 
-For reproducible deployments, build pre-patched images instead of patching at
-runtime:
+For reproducible deployments you can build pre-patched images instead of patching
+at runtime. **`build-custom-images.sh` does not patch anything by itself** — it
+builds images from your Dify **source tree**, so you must apply the RBAC source
+patchers to that tree *first*:
 
 ```bash
+# 1. Patch your Dify source tree (creates .backup files next to each target)
+python3 backend-rbac-patch.py
+node frontend-rbac-patch.js
+
+# 2. Build images from the now-patched source
 ./build-custom-images.sh
 # Produces: dify-api-custom-rbac:latest, dify-web-custom-rbac:latest
 
-# Then use the override file in your Dify directory
+# 3. Deploy using the override file in your Dify directory
 cp docker-compose.override.yml /path/to/dify/
 docker compose up -d
 ```
+
+> **Important:** Building against an **unpatched** Dify source tree produces
+> `dify-*-custom-rbac` images that do **not** enforce RBAC despite their name.
+> Always run the source patchers (step 1) before building, and confirm access
+> control afterwards with the [verification steps](#verification).
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for a full, step-by-step deployment guide
 (prerequisites, environment configuration, nginx hardening, monitoring, and a

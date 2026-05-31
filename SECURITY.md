@@ -47,9 +47,9 @@ following in mind:
 
 ## Running scripts safely
 
-For convenience the README shows one-liners such as `curl ... | bash`. For a
-security-sensitive tool we recommend you **download, read, and verify** the
-script before executing it:
+It can be tempting to install a tool via a `curl ... | bash` one-liner. Because
+this is a security-sensitive tool, we recommend you instead **download, read, and
+verify** the script before executing it (as the README's install steps do):
 
 ```bash
 curl -L https://raw.githubusercontent.com/hiroppelx/dify-custom-rbac/main/apply-dify-rbac.sh -o apply-dify-rbac.sh
