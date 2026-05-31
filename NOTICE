@@ -16,7 +16,7 @@ deployments. It is NOT affiliated with, endorsed by, or sponsored by
 LangGenius, Inc. or the Dify project.
 
 The scripts in this repository modify a separate installation of Dify
-(https://github.com/langgenius/dify), which is itself distributed under the
-Apache License, Version 2.0. "Dify" and related names/logos are the property of
-their respective owners. No Dify source code is redistributed in this
-repository.
+(https://github.com/langgenius/dify), which is distributed under a modified
+version of the Apache License, Version 2.0 (with additional terms defined by its
+authors). "Dify" and related names/logos are the property of their respective
+owners. No Dify source code is redistributed in this repository.

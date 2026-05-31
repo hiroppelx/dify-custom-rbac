@@ -377,8 +377,11 @@ gitleaks detect --source . --redact     # secret scan
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE) — the same license as the Dify
-project. See [`NOTICE`](NOTICE) for attribution.
+This project's tooling is licensed under the [Apache License 2.0](LICENSE). See
+[`NOTICE`](NOTICE) for attribution. (Dify itself is distributed under a *modified*
+Apache License 2.0 with additional terms — review Dify's own
+[LICENSE](https://github.com/langgenius/dify/blob/main/LICENSE) for the conditions
+that apply to your deployment.)
 
 ---
 
