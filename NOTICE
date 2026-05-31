@@ -1,0 +1,22 @@
+dify-custom-rbac
+Copyright 2025 dify-custom-rbac contributors
+
+This product is licensed under the Apache License, Version 2.0 (the "License").
+You may obtain a copy of the License in the LICENSE file distributed with this
+repository or at:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+------------------------------------------------------------------------------
+Relationship to Dify
+------------------------------------------------------------------------------
+
+This project is an independent, community-maintained tool for self-hosted Dify
+deployments. It is NOT affiliated with, endorsed by, or sponsored by
+LangGenius, Inc. or the Dify project.
+
+The scripts in this repository modify a separate installation of Dify
+(https://github.com/langgenius/dify), which is itself distributed under the
+Apache License, Version 2.0. "Dify" and related names/logos are the property of
+their respective owners. No Dify source code is redistributed in this
+repository.

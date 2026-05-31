@@ -260,7 +260,8 @@ manual_patch_workflow_log() {
     log_warning "Applying manual patch to workflow_app_log.py..."
     
     # Find the line with def get and add RBAC check after it
-    local line_num=$(grep -n "def get(self, app_model: App):" "$file" | cut -d: -f1)
+    local line_num
+    line_num=$(grep -n "def get(self, app_model: App):" "$file" | cut -d: -f1)
     if [[ -n "$line_num" ]]; then
         # Insert RBAC check after the function definition and docstring
         sed -i "${line_num}a\\        # RBAC: Only owner and admin can view logs\\

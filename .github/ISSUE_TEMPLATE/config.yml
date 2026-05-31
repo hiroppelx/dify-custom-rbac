@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/hiroppelx/dify-custom-rbac/security/advisories/new
+    about: Please report security issues privately via GitHub Security Advisories, not as public issues.
+  - name: Questions & discussion
+    url: https://github.com/hiroppelx/dify-custom-rbac/discussions
+    about: Ask questions and discuss ideas with the community.

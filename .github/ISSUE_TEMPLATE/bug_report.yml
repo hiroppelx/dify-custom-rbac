@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a problem with dify-custom-rbac
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug report! Please **do not include secrets,
+        credentials, or tokens** in logs or screenshots.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected to happen.
+      placeholder: When I run `./apply-dify-rbac.sh --auto`, ...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: How can a maintainer reproduce the issue?
+      placeholder: |
+        1. Deploy Dify via Docker Compose
+        2. Run `./apply-dify-rbac.sh --auto`
+        3. Log in as an Editor and open the logs page
+        4. See ...
+    validations:
+      required: true
+  - type: input
+    id: dify-version
+    attributes:
+      label: Dify version / commit
+      description: Output of `git describe --tags` in your Dify directory, or the image tag you use.
+      placeholder: e.g. 1.x.x, or commit hash
+    validations:
+      required: true
+  - type: dropdown
+    id: deploy
+    attributes:
+      label: How is Dify deployed?
+      options:
+        - Docker Compose (self-hosted)
+        - Custom Docker images (this repo's Dockerfiles)
+        - Other / not sure
+    validations:
+      required: true
+  - type: input
+    id: script
+    attributes:
+      label: Which script and mode?
+      placeholder: e.g. apply-dify-rbac.sh --auto / dify-integrated-upgrade.sh --dry-run
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Host OS / environment
+      placeholder: e.g. Ubuntu 22.04, Docker 27.x
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / output
+      description: Paste relevant output. **Redact any secrets.**
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I have removed all secrets/credentials from logs and screenshots.
+          required: true
